@@ -1,5 +1,13 @@
 <template>
   <div id="app">
+    <header>
+      <button
+        v-for="font in fontOptions"
+        :key="font"
+        v-text="font"
+        @click="loadFont(font)"
+      />
+    </header>
     <template v-if="font">
       <div class="glyphs">
         <GlyphPreview
@@ -8,14 +16,14 @@
           :glyph="previewGlyph"
         />
       </div>
-      <div class="glyphs">
+      <!-- <div class="glyphs">
         <GlyphPreview
           v-for="(glyph, i) in font.glyphs.glyphs"
           :key="'glyph' + i"
           :font="font"
           :glyph="glyph"
         />
-      </div>
+      </div> -->
       <hr/>
       <FontData
         :font="font"
@@ -38,10 +46,19 @@ export default {
     return {
       previewGlyph: null,
       font: null,
+      fontOptions: [
+        'alhambra.ttf',
+        'UxumGrotesque-Medium.otf',
+        'GiantMouse.ttf',
+        'Pushster.ttf',
+        'Lora-Italic.ttf',
+        'momcake.otf',
+      ],
     };
   },
   created() {
-    this.loadFont()
+    // this.loadFont('GiantMouse.ttf')
+    this.loadFont('Lora-Italic.ttf')
   },
   mounted() {
     document.addEventListener('keyup', (event) => {
@@ -54,16 +71,14 @@ export default {
     })
     this.loadFont()
   },
-  computed: {
-    previewGlyph() {
-      return this.font.glyphs.glyphs[74]
-    }
-  },
   methods: {
-    async loadFont() {
+    async loadFont(font) {
       try {
-        this.font = await opentype.load('fonts/Lora-SemiBold.ttf')
-        // this.font = await opentype.load('momcake.otf')
+        this.font = await opentype.load(`fonts/${font}`)
+
+        const previewUnicode = '3'.charCodeAt()
+        this.previewGlyph = Object.values(this.font.glyphs.glyphs).find(i => i.unicode === previewUnicode)
+        console.log('this.previewGlyph', this.previewGlyph);
       } catch(err) {
         console.log('err', err);
       }
