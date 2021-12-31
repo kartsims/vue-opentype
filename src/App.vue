@@ -5,16 +5,10 @@
     @drop.prevent="dropHandler"
     @dragover.prevent
   >
-    <FontHeader :font="font"/>
-    <header>
-      <button
-        v-for="font in fontOptions"
-        :key="font"
-        v-text="font"
-        @click="loadFontUrl(font)"
-      />
-    </header>
     <template v-if="font">
+      <FontHeader
+        :font="font"
+      />
       <div class="glyphs">
         <GlyphPreview
           v-if="previewGlyph"
@@ -30,23 +24,24 @@
           :glyph="glyph"
         />
       </div> -->
-      <hr/>
-      <FontData
-        :font="font"
-      />
     </template>
+    <div
+      v-else
+      class="dropzone"
+    >
+      <span>Drop a font to get started</span>
+    </div>
   </div>
 </template>
 
 <script>
 import opentype from 'opentype.js'
-import FontData from './components/FontData.vue'
 import FontHeader from './components/FontHeader.vue'
 import GlyphPreview from './components/GlyphPreview.vue'
+import * as db from 'idb-keyval'
 
 export default {
   components: {
-    FontData,
     FontHeader,
     GlyphPreview,
   },
@@ -54,26 +49,19 @@ export default {
     return {
       previewGlyph: null,
       font: null,
-      fontOptions: [
-        'alhambra.ttf',
-        'UxumGrotesque-Medium.otf',
-        'GiantMouse.ttf',
-        'Pushster.ttf',
-        'Lora-Italic.ttf',
-        'momcake.otf',
-      ],
     };
   },
   watch: {
     font() {
       const previewUnicode = '3'.charCodeAt()
       this.previewGlyph = Object.values(this.font.glyphs.glyphs).find(i => i.unicode === previewUnicode)
-      console.log('this.previewGlyph', this.previewGlyph);
     },
   },
-  created() {
-    // this.loadFontUrl('GiantMouse.ttf')
-    this.loadFontUrl('Lora-Italic.ttf')
+  async created() {
+    const stored = await db.get('font')
+    if (stored) {
+      this.loadFont(stored)
+    }
   },
   mounted() {
     document.addEventListener('keyup', (event) => {
@@ -92,13 +80,14 @@ export default {
 
       const fr = new FileReader()
       fr.onload = async () => {
-        this.font = await opentype.parse(fr.result)
+        this.loadFont(fr.result)
       }
       fr.readAsArrayBuffer(droppedFiles[0])
     },
-    async loadFontUrl(filename) {
+    async loadFont(arr) {
       try {
-        this.font = await opentype.load(`fonts/${filename}`)
+        this.font = await opentype.parse(arr)
+        await db.set('font', arr)
       } catch(err) {
         console.log('err', err);
       }
@@ -108,21 +97,29 @@ export default {
 </script>
 
 <style>
-body {
+html, body {
   background: #f4f4f4;
+  height: 100%;
+  padding: 0;
+  margin: 0;
 }
 #app {
+  height: 100%;
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 .glyphs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   grid-auto-rows: minmax(100px, auto);
+}
+.dropzone {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
