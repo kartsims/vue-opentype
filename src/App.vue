@@ -1,11 +1,17 @@
 <template>
-  <div id="app">
+  <div
+    id="app"
+    v-cloak
+    @drop.prevent="dropHandler"
+    @dragover.prevent
+  >
+    <FontHeader :font="font"/>
     <header>
       <button
         v-for="font in fontOptions"
         :key="font"
         v-text="font"
-        @click="loadFont(font)"
+        @click="loadFontUrl(font)"
       />
     </header>
     <template v-if="font">
@@ -35,11 +41,13 @@
 <script>
 import opentype from 'opentype.js'
 import FontData from './components/FontData.vue'
+import FontHeader from './components/FontHeader.vue'
 import GlyphPreview from './components/GlyphPreview.vue'
 
 export default {
   components: {
     FontData,
+    FontHeader,
     GlyphPreview,
   },
   data() {
@@ -56,9 +64,16 @@ export default {
       ],
     };
   },
+  watch: {
+    font() {
+      const previewUnicode = '3'.charCodeAt()
+      this.previewGlyph = Object.values(this.font.glyphs.glyphs).find(i => i.unicode === previewUnicode)
+      console.log('this.previewGlyph', this.previewGlyph);
+    },
+  },
   created() {
-    // this.loadFont('GiantMouse.ttf')
-    this.loadFont('Lora-Italic.ttf')
+    // this.loadFontUrl('GiantMouse.ttf')
+    this.loadFontUrl('Lora-Italic.ttf')
   },
   mounted() {
     document.addEventListener('keyup', (event) => {
@@ -69,16 +84,21 @@ export default {
         this.previewGlyph = glyph
       }
     })
-    this.loadFont()
   },
   methods: {
-    async loadFont(font) {
-      try {
-        this.font = await opentype.load(`fonts/${font}`)
+    async dropHandler(ev) {
+      let droppedFiles = ev.dataTransfer.files
+      if(!droppedFiles) return
 
-        const previewUnicode = '3'.charCodeAt()
-        this.previewGlyph = Object.values(this.font.glyphs.glyphs).find(i => i.unicode === previewUnicode)
-        console.log('this.previewGlyph', this.previewGlyph);
+      const fr = new FileReader()
+      fr.onload = async () => {
+        this.font = await opentype.parse(fr.result)
+      }
+      fr.readAsArrayBuffer(droppedFiles[0])
+    },
+    async loadFontUrl(filename) {
+      try {
+        this.font = await opentype.load(`fonts/${filename}`)
       } catch(err) {
         console.log('err', err);
       }
