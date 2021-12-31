@@ -50,9 +50,18 @@
           stroke-width="2"
           stroke-dasharray="20 20"
         /> -->
-        <g
-          :transform="`translate(${glyphX} ${baseline})`"
-        >
+        <path
+          :d="path.toPathData()"
+          fill="none"
+          stroke="black"
+          stroke-width="2"
+        />
+        <PathCommands
+          :path="path"
+        />
+
+
+        <g :transform="`translate(${glyphX} ${baseline})`">
           <line
             x1="0"
             x2="0"
@@ -91,90 +100,6 @@
             style="opacity: .2"
           />
           -->
-          <path
-            :d="path.toPathData()"
-            fill="none"
-            stroke="black"
-            stroke-width="2"
-          />
-          <g
-            v-for="(cmd, i) in path.commands"
-            :key="'command' + i"
-          >
-            <circle
-              v-if="cmd.type === 'M' || cmd.type === 'L'"
-              :cx="cmd.x"
-              :cy="cmd.y"
-              r="6"
-              fill="orange"
-            />
-            <template
-              v-else-if="cmd.type === 'Q'"
-            >
-              <circle
-                :cx="cmd.x"
-                :cy="cmd.y"
-                r="8"
-                stroke="green"
-                stroke-width="3"
-                fill="none"
-              />
-              <circle
-                :cx="cmd.x1"
-                :cy="cmd.y1"
-                r="5"
-                fill="green"
-              />
-              <line
-                :x1="cmd.x"
-                :y1="cmd.y"
-                :x2="cmd.x1"
-                :y2="cmd.y1"
-                stroke="green"
-                stroke-width="3"
-              />
-            </template>
-            <template
-              v-else-if="cmd.type === 'C'"
-            >
-              <circle
-                :cx="cmd.x"
-                :cy="cmd.y"
-                r="8"
-                stroke="blue"
-                stroke-width="3"
-                fill="none"
-              />
-              <circle
-                :cx="cmd.x1"
-                :cy="cmd.y1"
-                r="5"
-                fill="blue"
-              />
-              <line
-                :x1="path.commands[i - 1].x"
-                :y1="path.commands[i - 1].y"
-                :x2="cmd.x1"
-                :y2="cmd.y1"
-                stroke="blue"
-                stroke-width="3"
-              />
-              <circle
-                :cx="cmd.x2"
-                :cy="cmd.y2"
-                r="5"
-                fill="blue"
-              />
-              <line
-                :x1="cmd.x"
-                :y1="cmd.y"
-                :x2="cmd.x2"
-                :y2="cmd.y2"
-                stroke="blue"
-                stroke-width="3"
-              />
-            </template>
-          </g>
         </g>
       </svg>
     </div>
@@ -187,7 +112,9 @@
 </template>
 
 <script>
+import PathCommands from './PathCommands.vue';
 export default {
+  components: { PathCommands },
   props: {
     font: {
       type: Object,
@@ -222,10 +149,13 @@ export default {
       return this.path.getBoundingBox()
     },
     glyphX() {
-      return (this.width - (this.boundingBox.x2 - this.boundingBox.x1)) / 2
+      const bbox = this.glyph.getPath(0, 0, this.font.ascender - this.font.descender).getBoundingBox()
+      return (this.width - (bbox.x2 - bbox.x1)) / 2
     },
     path() {
-      return this.glyph.getPath(0, 0, this.font.ascender - this.font.descender)
+      const path = this.glyph.getPath(0, 0, this.font.ascender - this.font.descender)
+      path.move(this.glyphX, this.baseline)
+      return path
     },
   },
 };
